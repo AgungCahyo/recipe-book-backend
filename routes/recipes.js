@@ -40,6 +40,19 @@ router.post("/users/:userId/recipes", async (req, res) => {
   try {
     let totalCost = 0;
     const enrichedIngredients = [];
+    const recipeRef = admin.firestore().collection("users").doc(userId).collection("recipes");
+
+      const snapshot = await recipeRef.get();
+    const isDuplicate = snapshot.docs.some((doc) => {
+      const existingName = doc.data().name || "";
+      return existingName.trim().toLowerCase() === name.trim().toLowerCase();
+    });
+
+    if (isDuplicate) {
+      return res
+        .status(400)
+        .json({ error: "Resep dengan nama ini sudah ada." });
+    }
 
     for (const item of ingredients) {
       const ingredientSnap = await admin
@@ -82,7 +95,7 @@ router.post("/users/:userId/recipes", async (req, res) => {
         createdAt: new Date().toISOString(),
       });
 
-    res.status(201).json({ id: newRecipeRef.id });
+    res.status(201).json( "resep ditambahkan", { id: newRecipeRef.id });
   } catch (error) {
     console.error("🔥 ERROR tambah resep:", error);
     res.status(500).json({ error: "Gagal menambahkan resep" });
