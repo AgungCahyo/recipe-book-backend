@@ -1,96 +1,111 @@
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const admin = require('firebase-admin');
-const authenticateUser = require('../middleware/authenticateUser');
+const admin = require("firebase-admin");
+const authenticateUser = require("../middleware/authenticateUser");
 
 router.use(authenticateUser);
 
-// 📥 Ambil semua resep
-router.get('/users/:userId/recipes', async (req, res) => {
+// Ambil semua resep
+router.get("/users/:userId/recipes", async (req, res) => {
   const { userId } = req.params;
-
   try {
     const snapshot = await admin
       .firestore()
-      .collection('users')
+      .collection("users")
       .doc(userId)
-      .collection('recipes')
+      .collection("recipes")
       .get();
 
-    const recipes = snapshot.docs.map(doc => ({
+    const recipes = snapshot.docs.map((doc) => ({
       id: doc.id,
-      ...doc.data()
+      ...doc.data(),
     }));
 
     res.json(recipes);
   } catch (error) {
-    console.error('🔥 ERROR get recipes:', error);
-    res.status(500).json({ error: 'Gagal mengambil data resep' });
+    console.error("🔥 ERROR get recipes:", error);
+    res.status(500).json({ error: "Gagal mengambil resep" });
   }
 });
 
-// ➕ Tambah resep
-router.post('/users/:userId/recipes', async (req, res) => {
+// Tambah resep baru
+router.post("/users/:userId/recipes", async (req, res) => {
   const { userId } = req.params;
-  const newRecipe = req.body;
+  const { name, imageUrl, instructions, ingredients } = req.body;
 
-  if (!newRecipe.title || !newRecipe.ingredients || !Array.isArray(newRecipe.ingredients)) {
-    return res.status(400).json({ error: 'Data resep tidak lengkap atau format ingredients salah' });
+  if (!name || !Array.isArray(ingredients) || ingredients.length === 0) {
+    return res.status(400).json({ error: "Data resep tidak lengkap" });
   }
 
   try {
-    const docRef = await admin
-      .firestore()
-      .collection('users')
-      .doc(userId)
-      .collection('recipes')
-      .add(newRecipe);
+    let totalCost = 0;
+    const enrichedIngredients = [];
 
-    res.status(201).json({ id: docRef.id, ...newRecipe });
+    for (const item of ingredients) {
+      const ingredientSnap = await admin
+        .firestore()
+        .collection("users")
+        .doc(userId)
+        .collection("ingredients")
+        .doc(item.ingredientId)
+        .get();
+
+      if (!ingredientSnap.exists) {
+        return res.status(404).json({ error: `Bahan ${item.ingredientId} tidak ditemukan` });
+      }
+
+      const ing = ingredientSnap.data();
+      const totalPrice = ing.pricePerUnit * item.quantity;
+      totalCost += totalPrice;
+
+      enrichedIngredients.push({
+        ingredientId: item.ingredientId,
+        name: ing.name,
+        unit: ing.unit,
+        quantity: item.quantity,
+        pricePerUnit: ing.pricePerUnit,
+        totalPrice,
+      });
+    }
+
+    const newRecipeRef = await admin
+      .firestore()
+      .collection("users")
+      .doc(userId)
+      .collection("recipes")
+      .add({
+        name,
+        imageUrl: imageUrl || "",
+        instructions: instructions || "",
+        ingredients: enrichedIngredients,
+        totalCost,
+        createdAt: new Date().toISOString(),
+      });
+
+    res.status(201).json({ id: newRecipeRef.id });
   } catch (error) {
-    console.error('🔥 ERROR saat menambahkan resep:', error);
-    res.status(500).json({ error: 'Gagal menambahkan resep' });
+    console.error("🔥 ERROR tambah resep:", error);
+    res.status(500).json({ error: "Gagal menambahkan resep" });
   }
 });
 
-// ✏️ Edit resep
-router.put('/users/:userId/recipes/:recipeId', async (req, res) => {
+// Hapus resep
+router.delete("/users/:userId/recipes/:recipeId", async (req, res) => {
   const { userId, recipeId } = req.params;
-  const updatedData = req.body;
 
   try {
     await admin
       .firestore()
-      .collection('users')
+      .collection("users")
       .doc(userId)
-      .collection('recipes')
-      .doc(recipeId)
-      .update(updatedData);
-
-    res.json({ id: recipeId, ...updatedData });
-  } catch (error) {
-    console.error('🔥 ERROR update resep:', error);
-    res.status(500).json({ error: 'Gagal mengupdate resep' });
-  }
-});
-
-// 🗑️ Hapus resep
-router.delete('/users/:userId/recipes/:recipeId', async (req, res) => {
-  const { userId, recipeId } = req.params;
-
-  try {
-    await admin
-      .firestore()
-      .collection('users')
-      .doc(userId)
-      .collection('recipes')
+      .collection("recipes")
       .doc(recipeId)
       .delete();
 
-    res.json({ message: 'Resep berhasil dihapus', id: recipeId });
+    res.json({ message: "Resep berhasil dihapus", id: recipeId });
   } catch (error) {
-    console.error('🔥 ERROR hapus resep:', error);
-    res.status(500).json({ error: 'Gagal menghapus resep' });
+    console.error("🔥 ERROR hapus resep:", error);
+    res.status(500).json({ error: "Gagal menghapus resep" });
   }
 });
 

@@ -29,7 +29,7 @@ const ingredientRoutes = require("./routes/ingredients");
 app.use("/api", ingredientRoutes); // contains /users/:userId/ingredients
 
 const recipeRoutes = require("./routes/recipes");
-app.use("/api/recipes", recipeRoutes);
+app.use("/api", recipeRoutes);
 
 const userRoutes = require("./routes/users");
 app.use("/api/users", userRoutes);
