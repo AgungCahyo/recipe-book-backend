@@ -2,7 +2,7 @@
 
 const db = require("../firebase/firebase");
 
-// 🔥 Register new user
+// Register new user
 const createUser = async (req, res) => {
   const { uid, email, name } = req.body;
 
@@ -14,7 +14,7 @@ const createUser = async (req, res) => {
     const userRef = db.collection("users").doc(uid);
     await userRef.set({
       email,
-      name: name || '',
+      name: name || "",
       createdAt: new Date().toISOString(),
     });
 
@@ -23,11 +23,9 @@ const createUser = async (req, res) => {
     console.error("🔥 Error saat membuat user:", error);
     res.status(500).json({ error: "Gagal membuat user" });
   }
-console.log("🔥 Body diterima:", uid);
-
 };
 
-// 🔍 Get user by UID
+//  Get user by UID
 const getUser = async (req, res) => {
   const { userId } = req.params;
 
@@ -46,7 +44,7 @@ const getUser = async (req, res) => {
   }
 };
 
-// ❌ Delete user by UID
+//  Delete user by UID
 const deleteUser = async (req, res) => {
   const { userId } = req.params;
 
@@ -58,7 +56,6 @@ const deleteUser = async (req, res) => {
     res.status(500).json({ error: "Gagal menghapus user" });
   }
 };
-
 
 module.exports = {
   createUser,

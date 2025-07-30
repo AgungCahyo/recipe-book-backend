@@ -32,6 +32,7 @@ const recipeRoutes = require("./routes/recipes");
 app.use("/api", recipeRoutes); // /users/:userId/recipes
 
 const userRoutes = require("./routes/users");
+const errorHandler = require('./middleware/errorHandler');
 app.use("/api/users", userRoutes); // /users/
 
 // 🚀 Launch
@@ -39,3 +40,4 @@ const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });
+app.use(errorHandler);

@@ -1,0 +1,24 @@
+module.exports = function validateNewIngredientInput(req, res, next) {
+  const { name, quantity, unit, price } = req.body;
+
+  // Wajib semua field ada
+  if (!name || !unit || quantity === undefined || price === undefined) {
+    return res.status(400).json({ error: "Semua field wajib diisi." });
+  }
+
+  // Validasi tipe data
+  if (typeof name !== "string" || name.trim() === "") {
+    return res.status(400).json({ error: "Field 'name' harus berupa string yang valid." });
+  }
+  if (typeof unit !== "string" || unit.trim() === "") {
+    return res.status(400).json({ error: "Field 'unit' harus berupa string yang valid." });
+  }
+  if (typeof quantity !== "number" || isNaN(quantity) || quantity < 0) {
+    return res.status(400).json({ error: "Field 'quantity' harus berupa angka ≥ 0." });
+  }
+  if (typeof price !== "number" || isNaN(price) || price < 0) {
+    return res.status(400).json({ error: "Field 'price' harus berupa angka ≥ 0." });
+  }
+
+  next();
+};

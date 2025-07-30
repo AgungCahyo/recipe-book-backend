@@ -1,5 +1,5 @@
-
-const db = require('../firebase/firebase');
+//authController.js
+const {db, admin} = require('../firebase/firebase');
 
 const loginWithGoogle = async (req, res) => {
   const { idToken } = req.body;
