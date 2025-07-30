@@ -82,58 +82,32 @@ router.post("/users/:userId/ingredients", async (req, res) => {
   }
 });
 
-// PUT: Edit bahan
-router.put("/users/:userId/ingredients/:ingredientId", async (req, res) => {
-  const { userId, ingredientId } = req.params;
-  const { name, price, quantity, unit } = req.body;
-
-  if (!name || !price || !quantity || !unit) {
-    return res.status(400).json({ error: "Data bahan tidak lengkap" });
-  }
+// UPDATE INGREDIENT (Fleksibel - partial update)
+router.put("/ingredients/:id", async (req, res) => {
+  const ingredientId = req.params.id;
+  const { name, quantity, unit, price } = req.body;
 
   try {
-    const ingredientsRef = admin
-      .firestore()
-      .collection("users")
-      .doc(userId)
-      .collection("ingredients");
+    const db = getFirestore();
+    const ingredientRef = doc(db, "ingredients", ingredientId);
 
-    const snapshot = await ingredientsRef.get();
-    const isDuplicate = snapshot.docs.some((doc) => {
-      const existingName = doc.data().name || "";
-      return (
-        doc.id !== ingredientId &&
-        existingName.trim().toLowerCase() === name.trim().toLowerCase()
-      );
-    });
+    const updateData = {};
 
-    if (isDuplicate) {
-      return res
-        .status(400)
-        .json({ error: "Nama bahan ini sudah digunakan oleh bahan lain." });
+    if (name !== undefined) updateData.name = name;
+    if (quantity !== undefined) updateData.quantity = quantity;
+    if (unit !== undefined) updateData.unit = unit;
+    if (price !== undefined) updateData.price = price;
+
+    // Optional: Update pricePerUnit jika quantity dan price ada
+    if (quantity !== undefined && price !== undefined) {
+      updateData.pricePerUnit = price / quantity;
     }
 
-    const pricePerUnit = price / quantity;
-
-    await ingredientsRef.doc(ingredientId).update({
-      name: name.trim(),
-      price,
-      quantity,
-      unit,
-      pricePerUnit,
-    });
-
-    res.json({
-      id: ingredientId,
-      name,
-      price,
-      quantity,
-      unit,
-      pricePerUnit,
-    });
+    await updateDoc(ingredientRef, updateData);
+    res.status(200).json({ message: "Ingredient updated successfully" });
   } catch (error) {
-    console.error("🔥 ERROR update bahan:", error);
-    res.status(500).json({ error: "Gagal mengupdate bahan" });
+    console.error("Error updating ingredient:", error);
+    res.status(500).json({ message: "Failed to update ingredient", error });
   }
 });
 

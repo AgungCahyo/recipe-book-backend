@@ -102,6 +102,156 @@ router.post("/users/:userId/recipes", async (req, res) => {
   }
 });
 
+// PATCH: Edit sebagian resep
+router.patch("/users/:userId/recipes/:recipeId", async (req, res) => {
+  const { userId, recipeId } = req.params;
+  const { name, imageUrl, instructions, ingredients } = req.body;
+
+  try {
+    const recipeRef = admin
+      .firestore()
+      .collection("users")
+      .doc(userId)
+      .collection("recipes")
+      .doc(recipeId);
+
+    const recipeSnap = await recipeRef.get();
+
+    if (!recipeSnap.exists) {
+      return res.status(404).json({ error: "Resep tidak ditemukan" });
+    }
+
+    const updatedData = {};
+    let totalCost = 0;
+    let enrichedIngredients = [];
+
+    if (name !== undefined) updatedData.name = name;
+    if (imageUrl !== undefined) updatedData.imageUrl = imageUrl;
+    if (instructions !== undefined) updatedData.instructions = instructions;
+
+    if (Array.isArray(ingredients)) {
+      for (const item of ingredients) {
+        const ingSnap = await admin
+          .firestore()
+          .collection("users")
+          .doc(userId)
+          .collection("ingredients")
+          .doc(item.ingredientId)
+          .get();
+
+        if (!ingSnap.exists) {
+          return res.status(404).json({
+            error: `Bahan dengan ID ${item.ingredientId} tidak ditemukan`,
+          });
+        }
+
+        const ing = ingSnap.data();
+        const totalPrice = ing.pricePerUnit * item.quantity;
+        totalCost += totalPrice;
+
+        enrichedIngredients.push({
+          ingredientId: item.ingredientId,
+          name: ing.name,
+          unit: ing.unit,
+          quantity: item.quantity,
+          pricePerUnit: ing.pricePerUnit,
+          totalPrice,
+        });
+      }
+
+      updatedData.ingredients = enrichedIngredients;
+      updatedData.totalCost = totalCost;
+    }
+
+    await recipeRef.update(updatedData);
+
+    res.json({
+      message: "Resep berhasil diperbarui",
+      id: recipeId,
+      updatedFields: Object.keys(updatedData),
+    });
+  } catch (error) {
+    console.error("🔥 ERROR update resep:", error);
+    res.status(500).json({ error: "Gagal memperbarui resep" });
+  }
+});
+
+
+// Edit resep
+router.put("/users/:userId/recipes/:recipeId", async (req, res) => {
+  const { userId, recipeId } = req.params;
+  const { name, imageUrl, instructions, ingredients } = req.body;
+
+  try {
+    const recipeRef = admin
+      .firestore()
+      .collection("users")
+      .doc(userId)
+      .collection("recipes")
+      .doc(recipeId);
+
+    const recipeSnap = await recipeRef.get();
+
+    if (!recipeSnap.exists) {
+      return res.status(404).json({ error: "Resep tidak ditemukan" });
+    }
+
+    let updatedData = {};
+    let totalCost = 0;
+    let enrichedIngredients = [];
+
+    // Jika ada perubahan nama, imageUrl, atau instructions
+    if (name !== undefined) updatedData.name = name;
+    if (imageUrl !== undefined) updatedData.imageUrl = imageUrl;
+    if (instructions !== undefined) updatedData.instructions = instructions;
+
+    // Kalau ingredients ikut diupdate, hitung ulang totalCost
+    if (Array.isArray(ingredients)) {
+      for (const item of ingredients) {
+        const ingSnap = await admin
+          .firestore()
+          .collection("users")
+          .doc(userId)
+          .collection("ingredients")
+          .doc(item.ingredientId)
+          .get();
+
+        if (!ingSnap.exists) {
+          return res
+            .status(404)
+            .json({ error: `Bahan ${item.ingredientId} tidak ditemukan` });
+        }
+
+        const ing = ingSnap.data();
+        const totalPrice = ing.pricePerUnit * item.quantity;
+        totalCost += totalPrice;
+
+        enrichedIngredients.push({
+          ingredientId: item.ingredientId,
+          name: ing.name,
+          unit: ing.unit,
+          quantity: item.quantity,
+          pricePerUnit: ing.pricePerUnit,
+          totalPrice,
+        });
+      }
+
+      updatedData.ingredients = enrichedIngredients;
+      updatedData.totalCost = totalCost;
+    }
+
+    // Update hanya field yang dikirim
+    await recipeRef.update(updatedData);
+
+    res.json({ message: "Resep berhasil diperbarui", id: recipeId });
+  } catch (error) {
+    console.error("🔥 ERROR update resep:", error);
+    res.status(500).json({ error: "Gagal memperbarui resep" });
+  }
+});
+
+
+
 // Hapus resep
 router.delete("/users/:userId/recipes/:recipeId", async (req, res) => {
   const { userId, recipeId } = req.params;

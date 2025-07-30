@@ -26,13 +26,13 @@ app.get("/", (req, res) => {
 
 // ✅ Route setup
 const ingredientRoutes = require("./routes/ingredients");
-app.use("/api", ingredientRoutes); // contains /users/:userId/ingredients
+app.use("/api", ingredientRoutes); // /users/:userId/ingredients
 
 const recipeRoutes = require("./routes/recipes");
-app.use("/api", recipeRoutes);
+app.use("/api", recipeRoutes); // /users/:userId/recipes
 
 const userRoutes = require("./routes/users");
-app.use("/api/users", userRoutes);
+app.use("/api/users", userRoutes); // /users/
 
 // 🚀 Launch
 const PORT = process.env.PORT || 5000;
