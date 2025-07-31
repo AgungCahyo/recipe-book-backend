@@ -57,8 +57,43 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const updateUser = async (req, res) => {
+  const { userId } = req.params;
+  const updateData = req.body;
+
+  try {
+    const userRef = db.collection("users").doc(userId);
+    await userRef.update(updateData);
+    res.json({ message: "User berhasil diperbarui" });
+  } catch (error) {
+    console.error("🔥 Error saat update user:", error);
+    res.status(500).json({ error: "Gagal update user" });
+  }
+};
+
+const getProfile = async (req, res) => {
+  const userId = req.user.uid;
+
+  try {
+    const userRef = db.collection("users").doc(userId);
+    const doc = await userRef.get();
+
+    if (!doc.exists) {
+      return res.status(404).json({ error: "Profil user tidak ditemukan" });
+    }
+
+    res.json({ id: doc.id, ...doc.data() });
+  } catch (error) {
+    console.error("🔥 Error saat ambil profil:", error);
+    res.status(500).json({ error: "Gagal ambil profil user" });
+  }
+};
+
+
 module.exports = {
   createUser,
   getUser,
   deleteUser,
+  getProfile,
+  updateUser
 };
